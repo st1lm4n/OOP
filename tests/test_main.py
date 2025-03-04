@@ -112,3 +112,30 @@ def test_old_functionality(sample_product):
     # Проверка изменения количества
     sample_product.quantity = 10
     assert sample_product.quantity == 10
+
+
+@pytest.fixture
+def sample_products():
+    return [Product("Product1", "Desc1", 100, 5), Product("Product2", "Desc2", 200, 3)]
+
+
+def test_product_str():
+    product = Product("Test", "Desc", 150, 10)
+    assert str(product) == "Test, 150 руб. Остаток: 10 шт."
+
+
+def test_category_str(sample_products):
+    category = Category("TestCat", "Desc", sample_products)
+    assert str(category) == "TestCat, количество продуктов: 8 шт."
+
+
+def test_product_addition(sample_products):
+    p1, p2 = sample_products
+    assert p1 + p2 == 100 * 5 + 200 * 3
+
+
+def test_category_iteration(sample_products):
+    category = Category("TestCat", "Desc", sample_products)
+    products = list(category)
+    assert len(products) == 2
+    assert products[0].name == "Product1"
