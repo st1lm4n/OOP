@@ -1,21 +1,18 @@
 import pytest
 
-from main import Category, Product
+from main import Category, LawnGrass, Product, Smartphone
 
 
 def test_products_getter():
-    # Создаем товары с указанием всех необходимых аргументов
     product1 = Product("Product 1", "Description 1", 100.0, 5)
     product2 = Product("Product 2", "Description 2", 200.0, 10)
 
-    # Создаем категорию с этими товарами
     category = Category("Test Category", "Test Description", [product1, product2])
 
-    # Проверяем вывод геттера
     expected_output = "Product 1, 100.0 руб. Остаток: 5 шт.\n" "Product 2, 200.0 руб. Остаток: 10 шт."
     assert category.products == expected_output
 
-    # Проверяем, что нельзя изменить список товаров через геттер
+    # Проверка невозможности изменения списка через геттер
     with pytest.raises(AttributeError):
         category.products = []
 
@@ -112,3 +109,47 @@ def test_old_functionality(sample_product):
     # Проверка изменения количества
     sample_product.quantity = 10
     assert sample_product.quantity == 10
+
+
+@pytest.fixture
+def sample_smartphone():
+    return Smartphone("Samsung", "Desc", 1000, 5, 95.5, "S23", 256, "Black")
+
+
+@pytest.fixture
+def sample_lawn_grass():
+    return LawnGrass("Grass", "Desc", 500, 10, "Russia", "7 days", "Green")
+
+
+def test_smartphone_initialization(sample_smartphone):
+    assert sample_smartphone.name == "Samsung"
+    assert sample_smartphone.efficiency == 95.5
+    assert sample_smartphone.model == "S23"
+
+
+def test_lawn_grass_initialization(sample_lawn_grass):
+    assert sample_lawn_grass.name == "Grass"
+    assert sample_lawn_grass.country == "Russia"
+    assert sample_lawn_grass.germination_period == "7 days"
+
+
+def test_product_addition_same_type(sample_smartphone):
+    smartphone2 = Smartphone("Iphone", "Desc", 2000, 3, 98.2, "15", 512, "Gray")
+    assert sample_smartphone + smartphone2 == 1000 * 5 + 2000 * 3
+
+
+def test_product_addition_different_types(sample_smartphone, sample_lawn_grass):
+    with pytest.raises(TypeError):
+        sample_smartphone + sample_lawn_grass
+
+
+def test_category_add_product(sample_smartphone):
+    category = Category("Test", "Desc", [])
+    category.add_product(sample_smartphone)
+    assert len(category) == 1
+
+
+def test_category_add_invalid_product():
+    category = Category("Test", "Desc", [])
+    with pytest.raises(TypeError):
+        category.add_product("Not a product")
