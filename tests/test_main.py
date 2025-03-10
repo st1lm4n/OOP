@@ -1,7 +1,6 @@
 import pytest
 
-
-from main import Category, LawnGrass, Product, Smartphone
+from main import BaseProduct, Category, LawnGrass, Order, Product, Smartphone
 
 
 def test_products_getter():
@@ -156,3 +155,14 @@ def test_category_add_invalid_product():
     with pytest.raises(TypeError):
         category.add_product("Not a product")
 
+
+def test_base_product_abstract():
+    with pytest.raises(TypeError):
+        product = BaseProduct("Test", "Desc", 100, 5)
+
+
+def test_order_initialization():
+    product = Product("Test", "Desc", 100, 5)
+    order = Order(product, 3)
+    assert order.total_price == 300
+    assert str(order) == "Заказ: Test, количество: 3, итоговая стоимость: 300 руб."
