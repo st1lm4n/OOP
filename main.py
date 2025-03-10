@@ -24,6 +24,7 @@ class Product:
         self.__price = new_price
         print(f"Цена успешно изменена на {new_price}.")
 
+
     def __str__(self):
         return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
 
@@ -32,6 +33,8 @@ class Product:
             raise TypeError("Нельзя складывать товары разных классов")
         return self.price * self.quantity + other.price * other.quantity
 
+
+   
     @classmethod
     def new_product(cls, product_data: dict, products_list: list = None):
         name = product_data.get("name")
@@ -49,6 +52,7 @@ class Product:
             products_list.append(new_product)
             return new_product
         return cls(name, description, price, quantity)
+
 
 
 class Smartphone(Product):
@@ -86,7 +90,6 @@ class LawnGrass(Product):
         self.germination_period = germination_period
         self.color = color
 
-
 class Category:
     category_count = 0
     product_count = 0
@@ -100,13 +103,17 @@ class Category:
 
     def add_product(self, product):
         if not isinstance(product, Product):
+
             raise TypeError("Можно добавлять только объекты класса Product или его наследников.")
+
         self.__products.append(product)
         Category.product_count += 1
 
     @property
     def products(self):
+
         """Геттер для получения списка товаров в виде строки."""
+
         return "\n".join(str(product) for product in self.__products)
 
     def __len__(self):
@@ -115,3 +122,4 @@ class Category:
     def __str__(self):
         total_quantity = sum(product.quantity for product in self.__products)
         return f"{self.name}, количество продуктов: {total_quantity} шт."
+

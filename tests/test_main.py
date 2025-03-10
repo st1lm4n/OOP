@@ -1,5 +1,6 @@
 import pytest
 
+
 from main import Category, LawnGrass, Product, Smartphone
 
 
@@ -13,6 +14,7 @@ def test_products_getter():
     assert category.products == expected_output
 
     # Проверка невозможности изменения списка через геттер
+
     with pytest.raises(AttributeError):
         category.products = []
 
@@ -153,3 +155,4 @@ def test_category_add_invalid_product():
     category = Category("Test", "Desc", [])
     with pytest.raises(TypeError):
         category.add_product("Not a product")
+
