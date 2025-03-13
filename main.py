@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import List, Optional
 
 
 class BaseProduct(ABC):
     @abstractmethod
-    def __init__(self, name: str, description: str, price: float, quantity: int):
-        self.name = name
-        self.description = description
-        self._price = price  # Используем защищенный атрибут вместо приватного
-        self.quantity = quantity
+    def __init__(self, *args, **kwargs):
+        pass
 
     @property
     @abstractmethod
@@ -16,7 +14,7 @@ class BaseProduct(ABC):
 
     @price.setter
     @abstractmethod
-    def price(self, new_price: float):
+    def price(self, value: float):
         pass
 
     @abstractmethod
@@ -27,16 +25,25 @@ class BaseProduct(ABC):
     def __add__(self, other):
         pass
 
+    @classmethod
+    @abstractmethod
+    def new_product(cls, product_data: dict, products_list: Optional[List["BaseProduct"]] = None) -> "BaseProduct":
+        pass
+
 
 class LoggingMixin:
     def __init__(self, *args, **kwargs):
+        params = [repr(a) for a in args] + [f"{k}={repr(v)}" for k, v in kwargs.items()]
+        print(f"Создан объект класса {self.__class__.__name__} с параметрами: {', '.join(params)}")
         super().__init__(*args, **kwargs)
-        print(f"Создан объект класса {self.__class__.__name__} с параметрами: {args}, {kwargs}")
 
 
 class Product(BaseProduct, LoggingMixin):
     def __init__(self, name: str, description: str, price: float, quantity: int):
-        super().__init__(name, description, price, quantity)
+        self.name = name
+        self.description = description
+        self._price = price
+        self.quantity = quantity
 
     @property
     def price(self):
@@ -66,7 +73,7 @@ class Product(BaseProduct, LoggingMixin):
         return self.price * self.quantity + other.price * other.quantity
 
     @classmethod
-    def new_product(cls, product_data: dict, products_list: list = None):
+    def new_product(cls, product_data: dict, products_list: Optional[List["Product"]] = None) -> "Product":
         name = product_data.get("name")
         description = product_data.get("description")
         price = product_data.get("price")
@@ -86,15 +93,15 @@ class Product(BaseProduct, LoggingMixin):
 
 class Smartphone(Product):
     def __init__(
-            self,
-            name: str,
-            description: str,
-            price: float,
-            quantity: int,
-            efficiency: float,
-            model: str,
-            memory: int,
-            color: str,
+        self,
+        name: str,
+        description: str,
+        price: float,
+        quantity: int,
+        efficiency: float,
+        model: str,
+        memory: int,
+        color: str,
     ):
         super().__init__(name, description, price, quantity)
         self.efficiency = efficiency
@@ -102,22 +109,30 @@ class Smartphone(Product):
         self.memory = memory
         self.color = color
 
+    @classmethod
+    def new_product(cls, product_data: dict, products_list: Optional[List["Smartphone"]] = None) -> "Smartphone":
+        return super().new_product(product_data, products_list)
+
 
 class LawnGrass(Product):
     def __init__(
-            self,
-            name: str,
-            description: str,
-            price: float,
-            quantity: int,
-            country: str,
-            germination_period: str,
-            color: str,
+        self,
+        name: str,
+        description: str,
+        price: float,
+        quantity: int,
+        country: str,
+        germination_period: str,
+        color: str,
     ):
         super().__init__(name, description, price, quantity)
         self.country = country
         self.germination_period = germination_period
         self.color = color
+
+    @classmethod
+    def new_product(cls, product_data: dict, products_list: Optional[List["LawnGrass"]] = None) -> "LawnGrass":
+        return super().new_product(product_data, products_list)
 
 
 class Category:
@@ -139,7 +154,6 @@ class Category:
 
     @property
     def products(self):
-        """Геттер для получения списка товаров в виде строки."""
         return "\n".join(str(product) for product in self.__products)
 
     def __len__(self):
@@ -148,13 +162,3 @@ class Category:
     def __str__(self):
         total_quantity = sum(product.quantity for product in self.__products)
         return f"{self.name}, количество продуктов: {total_quantity} шт."
-
-
-class Order:
-    def __init__(self, product: Product, quantity: int):
-        self.product = product
-        self.quantity = quantity
-        self.total_price = product.price * quantity
-
-    def __str__(self):
-        return f"Заказ: {self.product.name}, количество: {self.quantity}, итоговая стоимость: {self.total_price} руб."
