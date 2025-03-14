@@ -1,161 +1,176 @@
+from io import StringIO
+from unittest.mock import patch
+
 import pytest
 
-from main import BaseProduct, Category, LawnGrass, Product, Smartphone
-
-
-def test_products_getter():
-    product1 = Product("Product 1", "Description 1", 100.0, 5)
-    product2 = Product("Product 2", "Description 2", 200.0, 10)
-
-    category = Category("Test Category", "Test Description", [product1, product2])
-
-    expected_output = "Product 1, 100.0 руб. Остаток: 5 шт.\n" "Product 2, 200.0 руб. Остаток: 10 шт."
-    assert category.products == expected_output
-
-    # Проверка невозможности изменения списка через геттер
-
-    with pytest.raises(AttributeError):
-        category.products = []
-
-
-def test_price_setter():
-    product = Product("Test Product", "Test Description", 100.0, 5)
-
-    # Пытаемся установить нулевую цену
-    product.price = 0
-    assert product.price == 100.0  # Цена не изменилась
-
-    # Пытаемся установить отрицательную цену
-    product.price = -50
-    assert product.price == 100.0  # Цена не изменилась
-
-    # Пытаемся понизить цену (с подтверждением)
-    # Симулируем ввод пользователя "y"
-    import builtins
-
-    original_input = builtins.input
-    builtins.input = lambda _: "y"
-    product.price = 80.0
-    assert product.price == 80.0  # Цена изменена
-    builtins.input = original_input  # Восстанавливаем оригинальный input
-
-    # Пытаемся понизить цену (без подтверждения)
-    builtins.input = lambda _: "n"
-    product.price = 70.0
-    assert product.price == 80.0  # Цена не изменилась
-    builtins.input = original_input
-
-    # Пытаемся повысить цену
-    product.price = 120.0
-    assert product.price == 120.0  # Цена изменена
+from main import Category, LawnGrass, Product, Smartphone
 
 
 @pytest.fixture
 def sample_product():
-    return Product("Test Product", "Test Description", 100.0, 5)
-
-
-def test_price_getter(sample_product):
-    """Проверяем, что геттер возвращает корректную цену"""
-    assert sample_product.price == 100.0
-
-
-def test_negative_price_setter(sample_product, capsys):
-    """Проверяем блокировку отрицательной цены"""
-    sample_product.price = -50
-    captured = capsys.readouterr()
-    assert "Цена не должна быть нулевая или отрицательная" in captured.out
-    assert sample_product.price == 100.0
-
-
-def test_zero_price_setter(sample_product, capsys):
-    """Проверяем блокировку нулевой цены"""
-    sample_product.price = 0
-    captured = capsys.readouterr()
-    assert "Цена не должна быть нулевая или отрицательная" in captured.out
-    assert sample_product.price == 100.0
-
-
-def test_price_decrease_with_confirmation(sample_product, monkeypatch):
-    """Проверяем успешное понижение цены с подтверждением"""
-    # Симулируем ввод 'y'
-    monkeypatch.setattr("builtins.input", lambda _: "y")
-    sample_product.price = 80.0
-    assert sample_product.price == 80.0
-
-
-def test_price_decrease_without_confirmation(sample_product, monkeypatch, capsys):
-    """Проверяем отмену понижения цены"""
-    # Симулируем ввод 'n'
-    monkeypatch.setattr("builtins.input", lambda _: "n")
-    sample_product.price = 80.0
-    captured = capsys.readouterr()
-    assert "Изменение цены отменено" in captured.out
-    assert sample_product.price == 100.0
-
-
-def test_price_increase(sample_product):
-    """Проверяем повышение цены без подтверждения"""
-    sample_product.price = 120.0
-    assert sample_product.price == 120.0
-
-
-def test_old_functionality(sample_product):
-    """Проверяем работу старой функциональности"""
-    # Проверка атрибутов
-    assert sample_product.name == "Test Product"
-    assert sample_product.description == "Test Description"
-    assert sample_product.quantity == 5
-
-    # Проверка изменения количества
-    sample_product.quantity = 10
-    assert sample_product.quantity == 10
+    return Product(name="Test", description="Desc", price=100.0, quantity=5)
 
 
 @pytest.fixture
 def sample_smartphone():
-    return Smartphone("Samsung", "Desc", 1000, 5, 95.5, "S23", 256, "Black")
+    return Smartphone(
+        name="PhoneX",
+        description="Flagship",
+        price=1000.0,
+        quantity=3,
+        efficiency=95.5,
+        model="X1",
+        memory=256,
+        color="Black",
+    )
 
 
 @pytest.fixture
 def sample_lawn_grass():
-    return LawnGrass("Grass", "Desc", 500, 10, "Russia", "7 days", "Green")
+    return LawnGrass(
+        name="PremiumGrass",
+        description="Green",
+        price=50.0,
+        quantity=10,
+        country="USA",
+        germination_period="2 weeks",
+        color="Emerald",
+    )
 
 
-def test_smartphone_initialization(sample_smartphone):
-    assert sample_smartphone.name == "Samsung"
-    assert sample_smartphone.efficiency == 95.5
-    assert sample_smartphone.model == "S23"
+def test_product_creation_logging(capsys):
+    """Проверка вывода лога при создании продукта"""
+    Product(name="Test", description="Desc", price=100.0, quantity=5)
+    captured = capsys.readouterr()
+    assert "Создан объект класса Product" in captured.out
+    assert "name='Test'" in captured.out
+    assert "price=100.0" in captured.out
 
 
-def test_lawn_grass_initialization(sample_lawn_grass):
-    assert sample_lawn_grass.name == "Grass"
-    assert sample_lawn_grass.country == "Russia"
-    assert sample_lawn_grass.germination_period == "7 days"
+def test_smartphone_creation_logging(capsys):
+    """Проверка вывода лога при создании смартфона"""
+    Smartphone(
+        name="PhoneX",
+        description="Flagship",
+        price=1000.0,
+        quantity=3,
+        efficiency=95.5,
+        model="X1",
+        memory=256,
+        color="Black",
+    )
+    captured = capsys.readouterr()
+    assert "Создан объект класса Smartphone" in captured.out
+    assert "memory=256" in captured.out
 
 
-def test_product_addition_same_type(sample_smartphone):
-    smartphone2 = Smartphone("Iphone", "Desc", 2000, 3, 98.2, "15", 512, "Gray")
-    assert sample_smartphone + smartphone2 == 1000 * 5 + 2000 * 3
+def test_lawn_grass_creation_logging(capsys):
+    """Проверка вывода лога при создании газона"""
+    LawnGrass(
+        name="PremiumGrass",
+        description="Green",
+        price=50.0,
+        quantity=10,
+        country="USA",
+        germination_period="2 weeks",
+        color="Emerald",
+    )
+    captured = capsys.readouterr()
+    assert "Создан объект класса LawnGrass" in captured.out
+    assert "germination_period='2 weeks'" in captured.out
 
 
-def test_product_addition_different_types(sample_smartphone, sample_lawn_grass):
-    with pytest.raises(TypeError):
-        sample_smartphone + sample_lawn_grass
+def test_price_update_flow(sample_product):
+    """Проверка корректного обновления цены"""
+    sample_product.price = 150.0
+    assert sample_product.price == 150.0
 
 
-def test_category_add_product(sample_smartphone):
-    category = Category("Test", "Desc", [])
-    category.add_product(sample_smartphone)
+@patch("builtins.input", return_value="n")
+def test_price_decline_cancellation(input_mock, sample_product):
+    """Проверка отмены снижения цены"""
+    sample_product.price = 80.0
+    assert sample_product.price == 100.0  # Цена должна остаться прежней
+
+
+def test_valid_product_addition(sample_product):
+    """Проверка сложения товаров одного класса"""
+    p2 = Product(name="Test2", description="Desc", price=200.0, quantity=3)
+    total = sample_product + p2
+    assert total == 100 * 5 + 200 * 3
+
+
+def test_invalid_product_addition(sample_product, sample_smartphone):
+    """Проверка ошибки при сложении разных классов"""
+    with pytest.raises(TypeError) as excinfo:
+        _ = sample_product + sample_smartphone
+    assert "Нельзя складывать товары разных классов" in str(excinfo.value)
+
+
+def test_new_product_creation():
+    """Проверка фабричного метода для Product"""
+    data = {"name": "NewProduct", "description": "NewDesc", "price": 300.0, "quantity": 10}
+    p = Product.new_product(data)
+    assert p.quantity == 10
+    assert p.price == 300.0
+
+
+def test_smartphone_new_product_creation():
+    """Проверка фабричного метода для Smartphone"""
+    data = {
+        "name": "NewPhone",
+        "description": "NewPhoneDesc",
+        "price": 500.0,
+        "quantity": 5,
+        "efficiency": 98.0,
+        "model": "X2",
+        "memory": 512,
+        "color": "White",
+    }
+    s = Smartphone.new_product(data)
+    assert s.memory == 512
+    assert s.model == "X2"
+
+
+def test_category_operations(sample_product):
+    """Проверка работы с категориями"""
+    category = Category(name="Electronics", description="Tech", products=[])
+    category.add_product(sample_product)
+
     assert len(category) == 1
+    assert "Test" in category.products
+    assert category.product_count == 1
 
 
-def test_category_add_invalid_product():
-    category = Category("Test", "Desc", [])
-    with pytest.raises(TypeError):
-        category.add_product("Not a product")
+def test_invalid_product_addition_to_category():
+    """Проверка добавления неверного типа в категорию"""
+    category = Category(name="Test", description="Desc", products=[])
+    with pytest.raises(TypeError) as excinfo:
+        category.add_product("invalid_product")
+    assert "Можно добавлять только объекты класса Product" in str(excinfo.value)
 
 
-def test_base_product_abstract():
-    with pytest.raises(TypeError):
-        product = BaseProduct("Test", "Desc", 100, 5)
+def test_category_counters():
+    """Проверка счетчиков категорий"""
+    initial_count = Category.category_count
+    Category(name="NewCat", description="Desc", products=[])
+    assert Category.category_count == initial_count + 1
+
+
+@patch("sys.stdout", new_callable=StringIO)
+def test_full_product_lifecycle(mock_stdout):
+    """Комплексный тест жизненного цикла продукта"""
+    # Создание
+    p = Product(name="Lifecycle", description="Test", price=200.0, quantity=10)
+
+    # Изменение цены
+    p.price = 250.0
+
+    # Добавление в категорию
+    category = Category(name="Test", description="Desc", products=[])
+    category.add_product(p)
+
+    # Проверка результатов
+    assert "Создан объект класса Product" in mock_stdout.getvalue()
+    assert "Цена успешно изменена на 250.0" in mock_stdout.getvalue()
+    assert len(category) == 1

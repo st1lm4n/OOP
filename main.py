@@ -1,56 +1,49 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
-
-
-class BaseProduct(ABC):
-    @abstractmethod
-    def __init__(self, *args, **kwargs):
-        pass
-
-    @property
-    @abstractmethod
-    def price(self):
-        pass
-
-    @price.setter
-    @abstractmethod
-    def price(self, value: float):
-        pass
-
-    @abstractmethod
-    def __str__(self):
-        pass
-
-    @abstractmethod
-    def __add__(self, other):
-        pass
-
-    @classmethod
-    @abstractmethod
-    def new_product(cls, product_data: dict, products_list: Optional[List["BaseProduct"]] = None) -> "BaseProduct":
-        pass
+from typing import Dict, List, Optional
 
 
 class LoggingMixin:
     def __init__(self, *args, **kwargs):
-        params = [repr(a) for a in args] + [f"{k}={repr(v)}" for k, v in kwargs.items()]
-        print(f"Создан объект класса {self.__class__.__name__} с параметрами: {', '.join(params)}")
+        params = ", ".join([repr(a) for a in args] + [f"{k}={repr(v)}" for k, v in kwargs.items()])
+        print(f"Создан объект класса {self.__class__.__name__} с параметрами: ({params})")
         super().__init__(*args, **kwargs)
 
 
-class Product(BaseProduct, LoggingMixin):
+class BaseProduct(ABC):
+    def __init__(self, *args, **kwargs):
+        """Базовый конструктор для корректной работы миксина"""
+        pass
+
+    @property
+    @abstractmethod
+    def price(self) -> float:
+        pass
+
+    @price.setter
+    @abstractmethod
+    def price(self, value: float) -> None:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def new_product(cls, product_data: Dict, products_list: Optional[List["BaseProduct"]] = None) -> "BaseProduct":
+        pass
+
+
+class Product(LoggingMixin, BaseProduct):
     def __init__(self, name: str, description: str, price: float, quantity: int):
+        super().__init__(name=name, description=description, price=price, quantity=quantity)
         self.name = name
         self.description = description
         self._price = price
         self.quantity = quantity
 
     @property
-    def price(self):
+    def price(self) -> float:
         return self._price
 
     @price.setter
-    def price(self, new_price: float):
+    def price(self, new_price: float) -> None:
         if new_price <= 0:
             print("Цена не должна быть нулевая или отрицательная.")
             return
@@ -64,31 +57,23 @@ class Product(BaseProduct, LoggingMixin):
         self._price = new_price
         print(f"Цена успешно изменена на {new_price}.")
 
-    def __str__(self):
-        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
-
-    def __add__(self, other):
-        if type(self) != type(other):
+    def __add__(self, other) -> float:
+        if type(self) is not type(other):
             raise TypeError("Нельзя складывать товары разных классов")
         return self.price * self.quantity + other.price * other.quantity
 
-    @classmethod
-    def new_product(cls, product_data: dict, products_list: Optional[List["Product"]] = None) -> "Product":
-        name = product_data.get("name")
-        description = product_data.get("description")
-        price = product_data.get("price")
-        quantity = product_data.get("quantity")
+    def __str__(self):
+        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
 
+    @classmethod
+    def new_product(cls, product_data: Dict, products_list: Optional[List["Product"]] = None) -> "Product":
         if products_list:
             for product in products_list:
-                if product.name == name:
-                    product.quantity += quantity
-                    product.price = max(product.price, price)
+                if product.name == product_data["name"]:
+                    product.quantity += product_data["quantity"]
+                    product.price = max(product.price, product_data["price"])
                     return product
-            new_product = cls(name, description, price, quantity)
-            products_list.append(new_product)
-            return new_product
-        return cls(name, description, price, quantity)
+        return cls(**product_data)
 
 
 class Smartphone(Product):
@@ -108,10 +93,15 @@ class Smartphone(Product):
         self.model = model
         self.memory = memory
         self.color = color
+        params = (
+            f"name={repr(name)}, description={repr(description)}, price={repr(price)}, quantity={repr(quantity)}"
+            f"efficiency={repr(efficiency)}, model={repr(model)}, memory={repr(memory)}, color={repr(color)}"
+        )
+        print(f"Создан объект класса {self.__class__.__name__} с параметрами: ({params})")
 
     @classmethod
-    def new_product(cls, product_data: dict, products_list: Optional[List["Smartphone"]] = None) -> "Smartphone":
-        return super().new_product(product_data, products_list)
+    def new_product(cls, product_data: Dict, products_list: Optional[List["Smartphone"]] = None) -> "Smartphone":
+        return cls(**product_data)
 
 
 class LawnGrass(Product):
@@ -129,10 +119,15 @@ class LawnGrass(Product):
         self.country = country
         self.germination_period = germination_period
         self.color = color
+        params = (
+            f"name={repr(name)}, description={repr(description)}, price={repr(price)}, quantity={repr(quantity)}"
+            f"country={repr(country)}, germination_period={repr(germination_period)}, color={repr(color)}"
+        )
+        print(f"Создан объект класса {self.__class__.__name__} с параметрами: ({params})")
 
     @classmethod
-    def new_product(cls, product_data: dict, products_list: Optional[List["LawnGrass"]] = None) -> "LawnGrass":
-        return super().new_product(product_data, products_list)
+    def new_product(cls, product_data: Dict, products_list: Optional[List["LawnGrass"]] = None) -> "LawnGrass":
+        return cls(**product_data)
 
 
 class Category:
@@ -146,19 +141,19 @@ class Category:
         Category.category_count += 1
         Category.product_count += len(products)
 
-    def add_product(self, product):
+    def add_product(self, product) -> None:
         if not isinstance(product, Product):
             raise TypeError("Можно добавлять только объекты класса Product или его наследников.")
         self.__products.append(product)
         Category.product_count += 1
 
     @property
-    def products(self):
-        return "\n".join(str(product) for product in self.__products)
+    def products(self) -> str:
+        return "\n".join(str(p) for p in self.__products)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.__products)
 
-    def __str__(self):
-        total_quantity = sum(product.quantity for product in self.__products)
-        return f"{self.name}, количество продуктов: {total_quantity} шт."
+    def __str__(self) -> str:
+        total = sum(p.quantity for p in self.__products)
+        return f"{self.name}, количество продуктов: {total} шт."
