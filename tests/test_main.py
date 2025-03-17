@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from main import Category, LawnGrass, Product, Smartphone
+from main import Category, LawnGrass, Product, Smartphone, ZeroQuantityError
 
 
 @pytest.fixture
@@ -160,17 +160,90 @@ def test_category_counters():
 @patch("sys.stdout", new_callable=StringIO)
 def test_full_product_lifecycle(mock_stdout):
     """Комплексный тест жизненного цикла продукта"""
-    # Создание
     p = Product(name="Lifecycle", description="Test", price=200.0, quantity=10)
 
-    # Изменение цены
     p.price = 250.0
 
-    # Добавление в категорию
     category = Category(name="Test", description="Desc", products=[])
     category.add_product(p)
 
-    # Проверка результатов
     assert "Создан объект класса Product" in mock_stdout.getvalue()
     assert "Цена успешно изменена на 250.0" in mock_stdout.getvalue()
     assert len(category) == 1
+
+
+def test_product_creation_with_zero_quantity():
+    with pytest.raises(ZeroQuantityError) as exc_info:
+        Product("Test Product", "Test Description", 100.0, 0)
+    assert "Товар с нулевым количеством не может быть добавлен" in str(exc_info.value)
+
+
+def test_category_middle_price_with_products():
+    product1 = Product("Product1", "Desc1", 100.0, 5)
+    product2 = Product("Product2", "Desc2", 200.0, 3)
+    category = Category("Test Category", "Test Description", [product1, product2])
+
+    assert category.middle_price() == 150.0
+
+
+def test_category_middle_price_empty():
+    category = Category("Empty Category", "Test Description", [])
+    assert category.middle_price() == 0.0
+
+
+def test_add_product_with_zero_quantity():
+    with pytest.raises(ZeroQuantityError) as exc_info:  # Изменяем ожидаемое исключение
+        Product("Invalid", "Desc", 50.0, 0)
+    assert "Товар с нулевым количеством не может быть добавлен" in str(exc_info.value)
+
+
+def test_category_initialization_with_invalid_products(capsys):
+
+    valid_product = Product("Valid", "Desc", 100.0, 5)
+
+    try:
+        invalid_product = Product("Invalid", "Desc", 50.0, 0)
+    except ZeroQuantityError:
+        pass
+
+    category = Category("Test", "Desc", [valid_product])
+    captured = capsys.readouterr()
+
+    assert "Ошибка при добавлении продукта" not in captured.out
+    assert len(category) == 1
+
+
+def test_product_addition():
+    product1 = Product("Product1", "Desc1", 100.0, 5)
+    product2 = Product("Product2", "Desc2", 200.0, 3)
+
+    assert product1 + product2 == (100 * 5 + 200 * 3)
+
+
+def test_price_change_confirmation(monkeypatch):
+    product = Product("Test", "Desc", 100.0, 5)
+
+    monkeypatch.setattr("builtins.input", lambda _: "y")
+    product.price = 50.0
+    assert product.price == 50.0
+
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    product.price = 30.0
+    assert product.price == 50.0  # Цена должна остаться прежней
+
+
+def test_category_counter():
+    initial_categories = Category.category_count
+    initial_products = Category.product_count
+
+    product = Product("Test", "Desc", 100.0, 5)
+    category = Category("Test", "Desc", [product])
+
+    assert Category.category_count == initial_categories + 1
+    assert Category.product_count == initial_products + 1
+
+
+def test_smartphone_creation():
+    smartphone = Smartphone("iPhone 15", "Flagship", 1000.0, 10, 95.0, "15 Pro", 256, "Space Gray")
+    assert isinstance(smartphone, Product)
+    assert smartphone.memory == 256
