@@ -33,6 +33,8 @@ class BaseProduct(ABC):
 class Product(LoggingMixin, BaseProduct):
     def __init__(self, name: str, description: str, price: float, quantity: int):
         super().__init__(name=name, description=description, price=price, quantity=quantity)
+        if quantity <= 0:
+            raise ZeroQuantityError("Товар с нулевым количеством не может быть добавлен")
         self.name = name
         self.description = description
         self._price = price
@@ -94,7 +96,7 @@ class Smartphone(Product):
         self.memory = memory
         self.color = color
         params = (
-            f"name={repr(name)}, description={repr(description)}, price={repr(price)}, quantity={repr(quantity)}"
+            f"name={repr(name)}, description={repr(description)}, price={repr(price)}, quantity={repr(quantity)}, "
             f"efficiency={repr(efficiency)}, model={repr(model)}, memory={repr(memory)}, color={repr(color)}"
         )
         print(f"Создан объект класса {self.__class__.__name__} с параметрами: ({params})")
@@ -120,7 +122,7 @@ class LawnGrass(Product):
         self.germination_period = germination_period
         self.color = color
         params = (
-            f"name={repr(name)}, description={repr(description)}, price={repr(price)}, quantity={repr(quantity)}"
+            f"name={repr(name)}, description={repr(description)}, price={repr(price)}, quantity={repr(quantity)}, "
             f"country={repr(country)}, germination_period={repr(germination_period)}, color={repr(color)}"
         )
         print(f"Создан объект класса {self.__class__.__name__} с параметрами: ({params})")
@@ -130,6 +132,10 @@ class LawnGrass(Product):
         return cls(**product_data)
 
 
+class ZeroQuantityError(Exception):
+    pass
+
+
 class Category:
     category_count = 0
     product_count = 0
@@ -137,13 +143,19 @@ class Category:
     def __init__(self, name: str, description: str, products: list):
         self.name = name
         self.description = description
-        self.__products = products
+        self.__products = []
         Category.category_count += 1
-        Category.product_count += len(products)
+        for product in products:
+            try:
+                self.add_product(product)
+            except (TypeError, ZeroQuantityError) as e:
+                print(f"Ошибка при добавлении продукта: {e}")
 
     def add_product(self, product) -> None:
         if not isinstance(product, Product):
             raise TypeError("Можно добавлять только объекты класса Product или его наследников.")
+        if product.quantity <= 0:
+            raise ZeroQuantityError("Товар с нулевым количеством не может быть добавлен")
         self.__products.append(product)
         Category.product_count += 1
 
@@ -157,3 +169,10 @@ class Category:
     def __str__(self) -> str:
         total = sum(p.quantity for p in self.__products)
         return f"{self.name}, количество продуктов: {total} шт."
+
+    def middle_price(self) -> float:
+        try:
+            total = sum(product.price for product in self.__products)
+            return total / len(self.__products)
+        except ZeroDivisionError:
+            return 0.0
